@@ -1,0 +1,9 @@
+Dockerfile
+node_modules
+.git
+*.pk
+*.sh
+*.yml
+.env
+.idea
+undefined

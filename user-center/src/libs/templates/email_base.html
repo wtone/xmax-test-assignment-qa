@@ -1,0 +1,33 @@
+<!--
+  XMATRiX 统一邮件基础模板
+
+  占位符说明：
+  - {{EMAIL_TITLE}}  : 邮件标题（h1）
+  - {{EMAIL_BODY}}   : 正文内容（支持 HTML）
+  - {{EMAIL_ACTION}} : 行动组件 HTML
+-->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+  style="width: 100%; min-width: 100%; height: 100%; background-color: #80786B; font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5;">
+    <tr>
+      <td align="center" valign="top" style="padding: 20px 0;">
+        <table role="presentation" class="card" width="600" cellspacing="0" cellpadding="0" border="0"
+          style="width: 600px; max-width: 100%; background-color: #F1EFE8; background-image: url('https://cdn.example.com/images/background.png'); background-position: center center; background-size: cover; background-repeat: no-repeat; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);">
+          <!-- Logo 区域 -->
+          <tr>
+            <td style="padding-top: 38px; padding-left: 38px;">
+              <img src="https://cdn.example.com/images/logo.png" width="42" height="42" alt="XMATRIX Logo" style="display: block; border: 0;">
+            </td>
+          </tr>
+          <!-- 内容区域：标题 + 正文 -->
+          <tr>
+            <td style="padding-left: 68px; padding-right: 68px; padding-bottom: 30px;">
+              <h1 class="title" style="font-size: 30px; font-weight: 900; color: #141414; margin-bottom: 30px; margin-top: 20px;">{{EMAIL_TITLE}}</h1>
+              <p class="text" style="font-size: 14px; color: #555; line-height: 2;">{{EMAIL_BODY}}</p>
+            </td>
+          </tr>
+          <!-- 行动区域 -->
+          {{EMAIL_ACTION}}
+        </table>
+      </td>
+    </tr>
+</table>

@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>候选人录入管理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        #userInfo {
+            background: #e8f5e9;
+            padding: 10px 20px;
+            margin: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid #4caf50;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #userInfo .user-info-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        #userInfo .user-info-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input[type="datetime-local"] {
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-danger {
+            background: #ff5252;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ff3838;
+        }
+
+        .btn-success {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #45a049;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: #f8f9fa;
+            color: #666;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tbody tr {
+            cursor: pointer;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .status-sent {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status-viewed {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-completed {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .status-expired {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+
+        .source-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .delete-btn {
+            background: #ff7043;
+            color: white;
+        }
+
+        .delete-btn:hover {
+            background: #ff5722;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .message.success {
+            background: #c8e6c9;
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+        }
+
+        .message.error {
+            background: #ffcdd2;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+
+        .message.info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #90caf9;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-content label {
+            color: #999;
+            font-size: 0.9em;
+            font-weight: normal;
+        }
+
+        .modal-content p {
+            color: #333;
+            font-size: 1em;
+            margin-top: 5px;
+        }
+
+        /* 自定义弹窗样式 */
+        .custom-alert {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.2s;
+        }
+
+        .custom-alert-content {
+            background-color: white;
+            margin: 20% auto;
+            padding: 0;
+            width: 90%;
+            max-width: 400px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s;
+            overflow: hidden;
+        }
+
+        .custom-alert-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #f94040 100%);
+            color: white;
+            font-size: 1.1em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .custom-alert-icon {
+            font-size: 1.5em;
+        }
+
+        .custom-alert-body {
+            padding: 25px;
+            color: #333;
+            font-size: 1em;
+            line-height: 1.6;
+        }
+
+        .custom-alert-footer {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            text-align: right;
+        }
+
+        .custom-alert-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .custom-alert-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.5em;
+            color: #333;
+        }
+
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .empty-state-text {
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 候选人录入管理系统</h1>
+            <p>手动录入和管理候选人信息</p>
+        </div>
+
+        <!-- 用户信息显示 -->
+        <div id="userInfo">
+            <div class="user-info-left">
+                <div class="user-info-item">
+                    <span style="color: #2e7d32;">👤 当前用户：</span>
+                    <strong id="currentUser" style="color: #1b5e20;"></strong>
+                </div>
+            </div>
+            <button onclick="logout()"
+                    style="padding: 6px 12px; background: #f44336; color: white; border: none;
+                           border-radius: 4px; cursor: pointer; font-size: 14px;">
+                退出登录
+            </button>
+        </div>
+
+        <div class="content">
+            <div id="message" class="message"></div>
+
+            <!-- 录入表单 -->
+            <div class="section">
+                <h2 class="section-title">✨ 录入新候选人</h2>
+                <form id="candidateForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="email">邮箱 *</label>
+                            <input type="email" id="email" name="email" required placeholder="candidate@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="name">姓名 *</label>
+                            <input type="text" id="name" name="name" required placeholder="请输入候选人姓名">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="jobId">职位ID</label>
+                            <input type="text" id="jobId" name="jobId" placeholder="请输入职位ID">
+                        </div>
+                        <div class="form-group">
+                            <label for="jobPosition">投递岗位 *</label>
+                            <input type="text" id="jobPosition" name="jobPosition" required placeholder="如：前端工程师、产品经理">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="resumeSource">简历来源 *</label>
+                            <select id="resumeSource" name="resumeSource" required>
+                                <option value="">请选择来源</option>
+                                <option value="boss直聘">boss直聘</option>
+                                <option value="智联招聘">智联招聘</option>
+                                <option value="前程无忧">前程无忧</option>
+                                <option value="小红书">小红书</option>
+                                <option value="猎聘">猎聘</option>
+                                <option value="LinkedIn">LinkedIn</option>
+                                <option value="内推">内推</option>
+                                <option value="官网">官网</option>
+                                <option value="其他">其他</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="linkSentAt">发送链接时间（UTC+8）</label>
+                            <input type="datetime-local" id="linkSentAt" name="linkSentAt">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="notes">备注</label>
+                        <textarea id="notes" name="notes" placeholder="其他需要记录的信息"></textarea>
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="btn btn-primary">录入候选人</button>
+                        <button type="button" class="btn btn-secondary" onclick="resetForm()">重置</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 候选人列表 -->
+            <div class="section">
+                <h2 class="section-title">👥 候选人列表</h2>
+                
+                <!-- 搜索和筛选 -->
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="搜索姓名、邮箱或岗位...">
+                    <button class="btn btn-primary" onclick="searchCandidates()">搜索</button>
+                    <button class="btn btn-secondary" onclick="loadCandidates()">刷新</button>
+                </div>
+
+                <div class="filters">
+                    <select class="filter-select" id="filterSource" onchange="loadCandidates()">
+                        <option value="">所有来源</option>
+                        <option value="boss直聘">boss直聘</option>
+                        <option value="智联招聘">智联招聘</option>
+                        <option value="前程无忧">前程无忧</option>
+                        <option value="小红书">小红书</option>
+                        <option value="猎聘">猎聘</option>
+                        <option value="LinkedIn">LinkedIn</option>
+                        <option value="内推">内推</option>
+                        <option value="官网">官网</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>姓名</th>
+                                <th>邮箱</th>
+                                <th>投递岗位</th>
+                                <th>简历来源</th>
+                                <th>发送时间（UTC+8）</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="candidatesTableBody">
+                            <tr>
+                                <td colspan="6" class="loading">
+                                    <div class="loading-spinner"></div>
+                                    <p>加载中...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 分页 -->
+                <div class="button-group" style="justify-content: center; margin-top: 20px;">
+                    <button class="btn btn-secondary" id="prevBtn" onclick="changePage(-1)">上一页</button>
+                    <span style="padding: 10px 20px; color: #666;">第 <span id="currentPage">1</span> 页，共 <span id="totalPages">1</span> 页</span>
+                    <button class="btn btn-secondary" id="nextBtn" onclick="changePage(1)">下一页</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 详情弹窗 -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">候选人详情</h3>
+                <span class="close" onclick="closeDetailModal()">&times;</span>
+            </div>
+            <div id="detailContent">
+                <!-- 动态内容将在这里插入 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 自定义弹窗 -->
+    <div id="customAlert" class="custom-alert">
+        <div class="custom-alert-content">
+            <div class="custom-alert-header">
+                <span class="custom-alert-icon">⚠️</span>
+                <span>提示</span>
+            </div>
+            <div class="custom-alert-body" id="customAlertMessage">
+                <!-- 消息内容 -->
+            </div>
+            <div class="custom-alert-footer">
+                <button class="custom-alert-btn" onclick="closeCustomAlert()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API基础路径 - 使用 job-b 前缀以匹配网关路由
+        const API_BASE = '/api/v1/job-b/manual-candidates';
+        
+        let currentPage = 1;
+        const pageSize = 10;
+        let totalPages = 1;
+        
+        // 从 URL 获取 JWT token
+        function getJwtToken() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('jwt_token') || localStorage.getItem('jwtToken');
+        }
+
+        // 获取认证 headers
+        function getAuthHeaders() {
+            const token = getJwtToken();
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            return headers;
+        }
+
+        // 退出登录
+        function logout() {
+            localStorage.removeItem('jwtToken');
+            localStorage.removeItem('userInfo');
+            window.location.href = '/static/user-center/admin.html';
+        }
+
+        // 检查响应是否为 token 过期
+        function checkTokenExpiration(result) {
+            if (!result.success && result.error && result.error.code === 401003) {
+                // Token 已过期
+                if (confirm('登录已过期，请重新登录')) {
+                    logout();
+                }
+                return true;
+            }
+            return false;
+        }
+
+        // 解析 JWT token
+        function parseJwtToken(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                return JSON.parse(jsonPayload);
+            } catch (e) {
+                console.error('Error parsing JWT:', e);
+                return null;
+            }
+        }
+
+        // 显示用户信息
+        function showUserInfo(token) {
+            const jwtPayload = parseJwtToken(token);
+            if (jwtPayload) {
+                const userInfo = {
+                    id: jwtPayload.userId || jwtPayload.id || jwtPayload.sub,
+                    username: jwtPayload.username || jwtPayload.name,
+                    email: jwtPayload.email || jwtPayload.userEmail
+                };
+
+                if (userInfo.id) {
+                    localStorage.setItem('userInfo', JSON.stringify(userInfo));
+                    const displayName = userInfo.email || userInfo.username || 'User';
+                    document.getElementById('currentUser').textContent = displayName;
+                    document.getElementById('userInfo').style.display = 'flex';
+                }
+            }
+        }
+
+        // 显示消息
+        function showMessage(message, type = 'success') {
+            if (type === 'error') {
+                // 错误信息使用自定义弹窗
+                showCustomAlert(message);
+            } else {
+                // 其他信息使用页面消息条
+                const messageEl = document.getElementById('message');
+                messageEl.textContent = message;
+                messageEl.className = `message ${type}`;
+                messageEl.style.display = 'block';
+
+                setTimeout(() => {
+                    messageEl.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // 显示自定义弹窗
+        function showCustomAlert(message) {
+            document.getElementById('customAlertMessage').textContent = message;
+            document.getElementById('customAlert').style.display = 'block';
+        }
+
+        // 关闭自定义弹窗
+        function closeCustomAlert() {
+            document.getElementById('customAlert').style.display = 'none';
+        }
+
+        // 格式化日期
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN');
+        }
+
+        // 显示详情弹窗
+        function showDetailModal(candidate) {
+            const content = `
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>姓名:</label>
+                        <p>${candidate.name}</p>
+                    </div>
+                    <div class="form-group">
+                        <label>邮箱:</label>
+                        <p>${candidate.email}</p>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>职位ID:</label>
+                        <p>${candidate.jobId || '-'}</p>
+                    </div>
+                    <div class="form-group">
+                        <label>投递岗位:</label>
+                        <p>${candidate.jobPosition}</p>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>简历来源:</label>
+                        <p><span class="source-badge">${candidate.resumeSource}</span></p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>发送链接时间:</label>
+                    <p>${formatDate(candidate.linkSentAt)}</p>
+                </div>
+                <div class="form-group">
+                    <label>备注:</label>
+                    <p>${candidate.notes || '无备注'}</p>
+                </div>
+            `;
+            document.getElementById('detailContent').innerHTML = content;
+            document.getElementById('detailModal').style.display = 'block';
+        }
+
+        // 关闭详情弹窗
+        function closeDetailModal() {
+            document.getElementById('detailModal').style.display = 'none';
+        }
+
+        // 获取状态文本
+        function getStatusBadge(status) {
+            const statusMap = {
+                'sent': '已发送',
+                'viewed': '已查看',
+                'completed': '已完成',
+                'expired': '已过期'
+            };
+            return `<span class="status-badge status-${status}">${statusMap[status] || status}</span>`;
+        }
+
+        // 重置表单
+        function resetForm() {
+            document.getElementById('candidateForm').reset();
+            // 清除保存的数据
+            localStorage.removeItem('candidateFormData');
+        }
+
+        // 加载候选人列表
+        async function loadCandidates() {
+            try {
+                const filterSource = document.getElementById('filterSource').value;
+                const keyword = document.getElementById('searchInput').value;
+                
+                const params = new URLSearchParams({
+                    page: currentPage,
+                    pageSize: pageSize
+                });
+                
+                if (filterSource) params.append('resumeSource', filterSource);
+                if (keyword) params.append('keyword', keyword);
+                
+                const response = await fetch(`${API_BASE}?${params}`, {
+                    headers: getAuthHeaders()
+                });
+                const result = await response.json();
+
+                // 检查 token 是否过期
+                if (checkTokenExpiration(result)) {
+                    return;
+                }
+
+                if (result.code === 0 && result.data) {
+                    renderCandidatesTable(result.data.items);
+                    totalPages = result.data.totalPages;
+                    document.getElementById('currentPage').textContent = currentPage;
+                    document.getElementById('totalPages').textContent = totalPages;
+                    
+                    // 更新分页按钮状态
+                    document.getElementById('prevBtn').disabled = currentPage <= 1;
+                    document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+                } else {
+                    renderEmptyState();
+                }
+            } catch (error) {
+                console.error('Failed to load candidates:', error);
+                showMessage('加载候选人列表失败', 'error');
+            }
+        }
+
+        // 渲染候选人表格
+        function renderCandidatesTable(candidates) {
+            const tbody = document.getElementById('candidatesTableBody');
+            
+            if (!candidates || candidates.length === 0) {
+                renderEmptyState();
+                return;
+            }
+
+            tbody.innerHTML = candidates.map(candidate => `
+                <tr onclick="showDetailModal(${JSON.stringify(candidate).replace(/"/g, '&quot;')})">
+                    <td>${candidate.name}</td>
+                    <td>${candidate.email}</td>
+                    <td>${candidate.jobPosition}</td>
+                    <td><span class="source-badge">${candidate.resumeSource}</span></td>
+                    <td>${formatDate(candidate.linkSentAt)}</td>
+                    <td onclick="event.stopPropagation()">
+                        <button class="action-btn delete-btn" onclick="deleteCandidate('${candidate.candidateId}')">
+                            删除
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 渲染空状态
+        function renderEmptyState() {
+            const tbody = document.getElementById('candidatesTableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <div class="empty-state-text">暂无候选人数据</div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        // 搜索候选人
+        function searchCandidates() {
+            currentPage = 1;
+            loadCandidates();
+        }
+
+        // 切换页面
+        function changePage(delta) {
+            const newPage = currentPage + delta;
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                loadCandidates();
+            }
+        }
+
+        // 创建候选人
+        document.getElementById('candidateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // 提交时就保存表单字段到 localStorage
+            saveFormToLocalStorage();
+
+            const formData = {
+                email: document.getElementById('email').value,
+                name: document.getElementById('name').value,
+                jobId: document.getElementById('jobId').value,
+                jobPosition: document.getElementById('jobPosition').value,
+                resumeSource: document.getElementById('resumeSource').value,
+                notes: document.getElementById('notes').value
+            };
+
+            const linkSentAt = document.getElementById('linkSentAt').value;
+            if (linkSentAt) {
+                formData.linkSentAt = new Date(linkSentAt).toISOString();
+            }
+
+            try {
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                // 检查 token 是否过期
+                if (checkTokenExpiration(result)) {
+                    return;
+                }
+
+                if (result.code === 0) {
+                    showMessage('候选人录入成功！');
+
+                    // 只清空候选人特定信息，保留通用字段
+                    document.getElementById('email').value = '';
+                    document.getElementById('name').value = '';
+
+                    loadCandidates();
+                } else {
+                    showMessage(result.message || '录入失败', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to create candidate:', error);
+                showMessage('录入候选人失败', 'error');
+            }
+        });
+
+        // 删除候选人
+        async function deleteCandidate(candidateId) {
+            if (!confirm('确定要删除这条候选人记录吗？')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/${candidateId}`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+
+                const result = await response.json();
+
+                // 检查 token 是否过期
+                if (checkTokenExpiration(result)) {
+                    return;
+                }
+
+                if (result.code === 0) {
+                    showMessage('候选人记录已删除');
+                    loadCandidates();
+                } else {
+                    showMessage(result.message || '删除失败', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to delete candidate:', error);
+                showMessage('删除候选人记录失败', 'error');
+            }
+        }
+
+        // 设置默认发送时间为当前时间
+        function setDefaultDateTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+
+            const datetime = `${year}-${month}-${day}T${hours}:${minutes}`;
+            document.getElementById('linkSentAt').value = datetime;
+        }
+
+        // 保存表单字段到 localStorage
+        function saveFormToLocalStorage() {
+            const formData = {
+                jobId: document.getElementById('jobId').value,
+                jobPosition: document.getElementById('jobPosition').value,
+                resumeSource: document.getElementById('resumeSource').value,
+                linkSentAt: document.getElementById('linkSentAt').value,
+                notes: document.getElementById('notes').value
+            };
+            localStorage.setItem('candidateFormData', JSON.stringify(formData));
+        }
+
+        // 从 localStorage 恢复表单字段
+        function loadFormFromLocalStorage() {
+            const savedData = localStorage.getItem('candidateFormData');
+            if (savedData) {
+                try {
+                    const formData = JSON.parse(savedData);
+
+                    // 恢复字段值
+                    if (formData.jobId) {
+                        document.getElementById('jobId').value = formData.jobId;
+                    }
+                    if (formData.jobPosition) {
+                        document.getElementById('jobPosition').value = formData.jobPosition;
+                    }
+                    if (formData.resumeSource) {
+                        document.getElementById('resumeSource').value = formData.resumeSource;
+                    }
+                    if (formData.linkSentAt) {
+                        document.getElementById('linkSentAt').value = formData.linkSentAt;
+                    }
+                    if (formData.notes) {
+                        document.getElementById('notes').value = formData.notes;
+                    }
+                } catch (error) {
+                    console.error('加载保存的表单数据失败:', error);
+                }
+            }
+        }
+
+        // 点击弹窗外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('detailModal');
+            if (event.target == modal) {
+                closeDetailModal();
+            }
+        }
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 保存 JWT token 到 localStorage
+            const urlParams = new URLSearchParams(window.location.search);
+            const jwtToken = urlParams.get('jwt_token');
+            if (jwtToken) {
+                localStorage.setItem('jwtToken', jwtToken);
+                showUserInfo(jwtToken);
+            } else {
+                // 检查本地存储的 token
+                const localToken = localStorage.getItem('jwtToken');
+                if (localToken) {
+                    showUserInfo(localToken);
+                } else {
+                    // 未登录，重定向到登录页
+                    alert('请先登录');
+                    window.location.href = '/static/user-center/admin.html';
+                    return;
+                }
+            }
+
+            setDefaultDateTime();
+            // 加载保存的表单数据
+            loadFormFromLocalStorage();
+            loadCandidates();
+        });
+    </script>
+</body>
+</html>

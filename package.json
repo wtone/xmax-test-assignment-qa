@@ -1,0 +1,14 @@
+{
+    "name": "xmax-test-assignment",
+    "version": "1.0.0",
+    "description": "XMAX 测试工程师面试编程题",
+    "private": true,
+    "scripts": {
+        "start:job": "cd job-service && npm start",
+        "start:user": "cd user-center && npm start",
+        "setup": "cd job-service && npm install && cd ../user-center && npm install",
+        "test": "cd job-service && npm test",
+        "test:a": "cd job-service && npm run test:a",
+        "test:b": "cd job-service && npm run test:b"
+    }
+}
