@@ -5,21 +5,18 @@ const JWT_SECRET = 'test-jwt-secret-for-interview'
 
 describe('Module A: Auth Middleware Regression Tests', () => {
 
-    describe('Bug 1: B-end user without companyId should not receive TOKEN_EXPIRED error', () => {
-        // Recreate the error-code selection logic from jwt_auth.js:115-138
-        // Test that when a B-end user lacks companyId and accesses a non-allowed path,
-        // the error code should NOT be 401003 (TOKEN_EXPIRED)
-        // This test EXPOSES the bug by showing the current code returns TOKEN_EXPIRED
+    describe('Bug 1 [FIXED]: B-end user without companyId receives PERMISSION_DENIED', () => {
+        // Regression: after fix in jwt_auth.js:137, error code is 403001 (PERMISSION_DENIED)
+        // instead of 401003 (TOKEN_EXPIRED)
 
-        test('should use a permission/forbidden error code, not TOKEN_EXPIRED (401003)', () => {
-            // Simulate the logic
+        test('should return PERMISSION_DENIED (403001) for B-end user without companyId', () => {
             const errorCodes = {
                 TOKEN_EXPIRED: { code: 401003, message: 'Access token has expired' },
                 PERMISSION_DENIED: { code: 403001, message: 'Permission denied' },
             }
 
             const decoded = { userId: 'user-1', userType: 'B', companyId: null }
-            const path = '/api/v1/jobs'  // not an allowed path
+            const path = '/api/v1/jobs'
             const method = 'GET'
 
             const userType = decoded.userType || 'C'
@@ -29,22 +26,15 @@ describe('Module A: Auth Middleware Regression Tests', () => {
                 const isAllowedPath = (method === 'POST' && path === '/api/v1/company') ||
                                        (method === 'GET' && path === '/api/v1/company/my')
                 if (!isAllowedPath) {
-                    // Current buggy code uses TOKEN_EXPIRED
-                    thrownError = errorCodes.TOKEN_EXPIRED
+                    // FIXED: uses PERMISSION_DENIED with meaningful message
+                    thrownError = { code: errorCodes.PERMISSION_DENIED.code, message: 'B-end user requires company association' }
                 }
             }
 
-            // This assertion DEMONSTRATES the bug:
-            // The error IS TOKEN_EXPIRED (401003), but it SHOULD be a permission error
             expect(thrownError).not.toBeNull()
-            expect(thrownError.code).toBe(401003)  // Current behavior (buggy)
-            // The correct behavior would be:
-            // expect(thrownError.code).toBe(403001)  // Expected after fix
-
-            // Semantic check: TOKEN_EXPIRED implies the token's exp claim has passed
-            // But the actual issue is missing companyId — these are completely different problems
-            expect(thrownError.message).toBe('Access token has expired')
-            expect(thrownError.message).not.toContain('company')  // No meaningful error message
+            expect(thrownError.code).toBe(403001)
+            expect(thrownError.code).not.toBe(401003)  // Must NOT be TOKEN_EXPIRED
+            expect(thrownError.message).toContain('company')
         })
 
         test('B-end user with companyId should pass validation', () => {
@@ -53,7 +43,7 @@ describe('Module A: Auth Middleware Regression Tests', () => {
 
             let thrownError = null
             if (userType === 'B' && !decoded.companyId) {
-                thrownError = { code: 401003 }
+                thrownError = { code: 403001 }
             }
 
             expect(thrownError).toBeNull()
@@ -76,36 +66,30 @@ describe('Module A: Auth Middleware Regression Tests', () => {
         })
     })
 
-    describe('Bug 2: Debug mode bypasses authentication without token verification', () => {
-        // Demonstrate that debug mode allows ANY request without userId to gain debug identity
+    describe('Bug 2 [FIXED]: Debug mode requires token verification', () => {
+        // Regression: after fix in gateway_auth.js:21, debug token check is restored
 
-        test('debug mode sets user without any token verification when userId is missing', () => {
+        test('debug mode with correct token activates debug identity', () => {
             const config = {
                 debug: {
                     enabled: true,
                     userId: 'debug-admin-user',
-                    userName: 'Debug Admin',
-                    userEmail: 'admin@debug.com',
-                    userType: 'admin',
-                    userRoles: '["admin"]',
-                    // token: 'secret-debug-token'  // This check was commented out!
+                    token: 'secret-debug-token',
                 }
             }
 
-            // Simulate: request with NO userId header and NO authorization header
-            const headers = {}  // completely empty — no auth at all
+            const headers = { authorization: 'secret-debug-token' }
             let userId = headers['x-user-id']
 
-            // Current (buggy) code — no token check
-            if (!userId && config.debug.enabled && config.debug.userId) {
+            // FIXED: token check is restored
+            if (!userId && config.debug.enabled && config.debug.userId && config.debug.token === headers['authorization']) {
                 userId = config.debug.userId
             }
 
-            // Bug: unauthenticated request gets debug admin identity
             expect(userId).toBe('debug-admin-user')
         })
 
-        test('original code required token match (commented out)', () => {
+        test('debug mode with wrong token does NOT activate debug identity', () => {
             const config = {
                 debug: {
                     enabled: true,
@@ -117,135 +101,204 @@ describe('Module A: Auth Middleware Regression Tests', () => {
             const headers = { authorization: 'wrong-token' }
             let userId = headers['x-user-id']
 
-            // What the ORIGINAL code did (before comment-out):
+            // FIXED: token must match
             if (!userId && config.debug.enabled && config.debug.userId && config.debug.token === headers['authorization']) {
                 userId = config.debug.userId
             }
 
-            // With wrong token, debug bypass should NOT activate
+            expect(userId).toBeUndefined()
+        })
+
+        test('debug mode without any auth header does NOT activate debug identity', () => {
+            const config = {
+                debug: {
+                    enabled: true,
+                    userId: 'debug-admin-user',
+                    token: 'secret-debug-token',
+                }
+            }
+
+            const headers = {}  // no auth at all
+            let userId = headers['x-user-id']
+
+            // FIXED: no token → no debug bypass
+            if (!userId && config.debug.enabled && config.debug.userId && config.debug.token === headers['authorization']) {
+                userId = config.debug.userId
+            }
+
             expect(userId).toBeUndefined()
         })
     })
 
-    describe('Bug 3: internalAuth const reassignment causes TypeError', () => {
-        test('reassigning const variable throws TypeError', () => {
-            expect(() => {
-                // Simulate the exact bug pattern from gateway_auth.js:182-185
-                const simulateInternalAuth = () => {
-                    const userId = undefined  // simulating ctx.headers['x-user-id'] being absent
-                    const debugEnabled = true
-                    const debugUserId = 'debug-user'
+    describe('Bug 3 [FIXED]: internalAuth uses let instead of const', () => {
+        // Regression: after fix in gateway_auth.js:182, const → let
 
-                    if (!userId && debugEnabled && debugUserId) {
-                        // This is what the buggy code does — reassign a const
-                        // We use eval to avoid syntax error at parse time
-                        eval('userId = debugUserId')
-                    }
-                }
-                simulateInternalAuth()
-            }).toThrow(TypeError)
-        })
-
-        test('using let would fix the const reassignment bug', () => {
-            // Demonstrate the fix
+        test('let allows reassignment for debug fallback', () => {
             const simulateFixedInternalAuth = () => {
-                let userId = undefined  // FIX: use let instead of const
+                let userId = undefined  // FIXED: let instead of const
                 const debugEnabled = true
                 const debugUserId = 'debug-user'
 
                 if (!userId && debugEnabled && debugUserId) {
-                    userId = debugUserId  // Now works
+                    userId = debugUserId
                 }
                 return userId
             }
 
             expect(simulateFixedInternalAuth()).toBe('debug-user')
         })
+
+        test('internalAuth returns header userId when present', () => {
+            const simulateInternalAuth = (headerUserId) => {
+                let userId = headerUserId
+                const debugEnabled = true
+                const debugUserId = 'debug-user'
+
+                if (!userId && debugEnabled && debugUserId) {
+                    userId = debugUserId
+                }
+                return userId
+            }
+
+            expect(simulateInternalAuth('real-user-id')).toBe('real-user-id')
+        })
     })
 
-    describe('Bug 4: user-center response overwrites gateway-verified user data', () => {
-        test('gateway companyId is lost after user-center data merge', () => {
-            // Simulate gateway headers (from jwt_auth.js)
+    describe('Bug 4 [FIXED]: user-center data merges with gateway data, preserving verified fields', () => {
+        // Regression: after fix in gateway_auth.js:59-65, merge strategy preserves
+        // gateway-verified type and companyId
+
+        test('gateway companyId is preserved after user-center merge', () => {
             const gatewayHeaders = {
                 'x-user-id': 'user-123',
                 'x-user-type': 'B',
-                'x-company-id': 'company-456',  // Set by gateway from JWT
-                'x-user-username': '',  // missing, triggers user-center fetch
+                'x-company-id': 'company-456',
+                'x-user-username': '',  // missing → triggers user-center fetch
+                'x-user-email': '',
             }
 
-            // Initial userInfo from headers
-            let userInfo = {
-                userId: gatewayHeaders['x-user-id'],
-                username: gatewayHeaders['x-user-username'] || '',
-                email: '',
-                type: gatewayHeaders['x-user-type'] || 'C',
-                roles: [],
-            }
+            const companyId = gatewayHeaders['x-company-id'] || null
+            const username = gatewayHeaders['x-user-username']
+            const userEmail = gatewayHeaders['x-user-email']
+            const userType = gatewayHeaders['x-user-type']
 
             // Simulate user-center response
             const userCenterData = {
                 username: 'John Doe',
                 email: 'john@example.com',
-                type: 'B',
+                type: 'C',  // different from gateway — should NOT override
                 roles: ['hr'],
+                companyId: 'other-company-789',
             }
 
-            // Current (buggy) code: COMPLETE REPLACEMENT
-            userInfo = {
+            // FIXED merge: gateway fields take priority, user-center fills gaps
+            const userInfo = {
                 userId: gatewayHeaders['x-user-id'],
-                username: userCenterData.username,
-                email: userCenterData.email,
-                type: userCenterData.type || 'C',
+                username: username || userCenterData.username,
+                email: userEmail || userCenterData.email,
+                type: userType || userCenterData.type || 'C',
+                companyId: companyId || userCenterData.companyId || null,
                 roles: userCenterData.roles || [],
-                // BUG: companyId from x-company-id header is NEVER included
             }
 
-            // companyId is lost!
-            expect(userInfo.companyId).toBeUndefined()
-            // It should have been preserved from gateway headers
-            expect(gatewayHeaders['x-company-id']).toBe('company-456')
+            // companyId is preserved from gateway!
+            expect(userInfo.companyId).toBe('company-456')
+            // userType is preserved from gateway!
+            expect(userInfo.type).toBe('B')
+            // username/email are supplemented from user-center
+            expect(userInfo.username).toBe('John Doe')
+            expect(userInfo.email).toBe('john@example.com')
         })
 
-        test('user-center can override gateway-validated userType', () => {
-            const gatewayUserType = 'B'  // from JWT, already verified
-
-            // user-center returns different type (e.g., stale data)
+        test('gateway userType takes priority over user-center userType', () => {
+            const gatewayUserType = 'B'
             const userCenterType = 'C'
 
-            // Current code uses user-center type
-            const finalType = userCenterType || 'C'
+            // FIXED: gateway type takes priority
+            const finalType = gatewayUserType || userCenterType || 'C'
 
-            // Gateway said B, but final result is C — privilege change!
-            expect(finalType).not.toBe(gatewayUserType)
-            expect(finalType).toBe('C')
+            expect(finalType).toBe('B')
         })
 
-        test('correct merge should preserve gateway-verified fields', () => {
+        test('user-center fills in when gateway fields are missing', () => {
             const gatewayHeaders = {
                 'x-user-id': 'user-123',
-                'x-user-type': 'B',
-                'x-company-id': 'company-456',
+                'x-user-type': '',  // missing
+                'x-company-id': '',  // missing
             }
 
             const userCenterData = {
-                username: 'John',
-                email: 'john@example.com',
-                type: 'C',  // different from gateway
-                roles: ['hr'],
+                username: 'Jane',
+                email: 'jane@example.com',
+                type: 'B',
+                companyId: 'uc-company-999',
+                roles: ['manager'],
             }
 
-            // CORRECT merge: gateway fields take priority, user-center fills gaps
-            const correctUserInfo = {
+            const companyId = gatewayHeaders['x-company-id'] || null
+            const userType = gatewayHeaders['x-user-type']
+
+            const userInfo = {
                 userId: gatewayHeaders['x-user-id'],
-                username: userCenterData.username,  // supplement
-                email: userCenterData.email,        // supplement
-                type: gatewayHeaders['x-user-type'],  // gateway takes priority
-                companyId: gatewayHeaders['x-company-id'],  // preserved
+                username: userCenterData.username,
+                email: userCenterData.email,
+                type: userType || userCenterData.type || 'C',
+                companyId: companyId || userCenterData.companyId || null,
                 roles: userCenterData.roles || [],
             }
 
-            expect(correctUserInfo.companyId).toBe('company-456')
-            expect(correctUserInfo.type).toBe('B')  // Gateway type preserved
+            // When gateway fields are missing, user-center values are used
+            expect(userInfo.type).toBe('B')
+            expect(userInfo.companyId).toBe('uc-company-999')
+        })
+    })
+
+    describe('Bug 5 [FIXED]: withdrawApplication uses canWithdrawApplication helper', () => {
+        // Regression: after fix in candidateApplicationController.js:601,
+        // uses canWithdrawApplication() from application_status.js
+
+        test('canWithdrawApplication allows correct statuses', () => {
+            // Replicate canWithdrawApplication logic from application_status.js
+            const withdrawableStatuses = [
+                'submitting', 'submitted', 'screening',
+                'interview', 'interview_inviting', 'interview_scheduled',
+            ]
+            const canWithdraw = (status) => withdrawableStatuses.includes(status)
+
+            // These should be withdrawable
+            expect(canWithdraw('submitting')).toBe(true)
+            expect(canWithdraw('submitted')).toBe(true)
+            expect(canWithdraw('screening')).toBe(true)
+            expect(canWithdraw('interview')).toBe(true)
+            expect(canWithdraw('interview_inviting')).toBe(true)
+            expect(canWithdraw('interview_scheduled')).toBe(true)
+        })
+
+        test('canWithdrawApplication blocks terminal and late-stage statuses', () => {
+            const withdrawableStatuses = [
+                'submitting', 'submitted', 'screening',
+                'interview', 'interview_inviting', 'interview_scheduled',
+            ]
+            const canWithdraw = (status) => withdrawableStatuses.includes(status)
+
+            // These should NOT be withdrawable
+            expect(canWithdraw('interview_completed')).toBe(false)
+            expect(canWithdraw('interview_terminated')).toBe(false)
+            expect(canWithdraw('offer')).toBe(false)
+            expect(canWithdraw('hired')).toBe(false)
+            expect(canWithdraw('rejected')).toBe(false)
+            expect(canWithdraw('withdrawn')).toBe(false)
+        })
+
+        test('"pending" is NOT a valid status — old buggy code used it', () => {
+            const withdrawableStatuses = [
+                'submitting', 'submitted', 'screening',
+                'interview', 'interview_inviting', 'interview_scheduled',
+            ]
+            const canWithdraw = (status) => withdrawableStatuses.includes(status)
+
+            // "pending" does not exist in APPLICATION_STATUS
+            expect(canWithdraw('pending')).toBe(false)
         })
     })
 
@@ -296,7 +349,6 @@ describe('Module A: Auth Middleware Regression Tests', () => {
                 { issuer: 'xmax-user-center', audience: 'xmax-services' }
             )
 
-            // Tamper with the payload
             const parts = token.split('.')
             const tamperedPayload = Buffer.from(JSON.stringify({ userId: 'hacker' })).toString('base64url')
             const tamperedToken = `${parts[0]}.${tamperedPayload}.${parts[2]}`

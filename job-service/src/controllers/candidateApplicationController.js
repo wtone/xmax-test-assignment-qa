@@ -11,7 +11,7 @@ import ResumeAiService from '../services/integration/ResumeAiService.js'
 import EvaluationService from '../services/integration/EvaluationService.js'
 import { AppError, asyncHandler, sendResponse } from '../../utils/response.js'
 import { ERROR_CODES } from '../constants/error_codes.js'
-import { APPLICATION_STATUS } from '../constants/application_status.js'
+import { APPLICATION_STATUS, canWithdrawApplication } from '../constants/application_status.js'
 
 const EVALUATION_STATUS = Object.freeze({
     PENDING: 'pending',
@@ -597,8 +597,8 @@ class CandidateApplicationController {
             throw new AppError('Application not found', ERROR_CODES.NOT_FOUND)
         }
 
-        // 只有在特定状态下才能撤回
-        if (!['pending', 'screening'].includes(application.status)) {
+        // 只有在特定状态下才能撤回（使用 canWithdrawApplication 工具函数）
+        if (!canWithdrawApplication(application.status)) {
             throw new AppError('Cannot withdraw application in current status', ERROR_CODES.INVALID_STATUS)
         }
 

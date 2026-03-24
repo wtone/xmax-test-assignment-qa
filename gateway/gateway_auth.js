@@ -17,8 +17,7 @@ export const gatewayAuth = async (ctx, next) => {
         let userType = ctx.headers['x-user-type']
         let userRoles = ctx.headers['x-user-roles']
 
-        // if (!userId && config.debug.enabled && config.debug.userId && config.debug.token === ctx.headers['authorization']) {
-        if (!userId && config.debug.enabled && config.debug.userId) {
+        if (!userId && config.debug.enabled && config.debug.userId && config.debug.token === ctx.headers['authorization']) {
             userId = config.debug.userId
             username = config.debug.userName
             userEmail = config.debug.userEmail
@@ -31,11 +30,13 @@ export const gatewayAuth = async (ctx, next) => {
         }
 
         // 来自网关，检查并补充用户信息
+        const companyId = ctx.headers['x-company-id'] || null
         let userInfo = {
             userId: userId,
             username: username || '',
             email: userEmail || '',
             type: userType || 'C',
+            companyId: companyId,
             roles: userRoles ? JSON.parse(userRoles) : [],
         }
 
@@ -56,18 +57,20 @@ export const gatewayAuth = async (ctx, next) => {
                     const result = await response.json()
                     if (result.code === 0 && result.data) {
                         const user = result.data
+                        // 合并策略：网关已验证的字段优先，user-center仅补充缺失字段
                         userInfo = {
                             userId,
-                            username: user.username,
-                            email: user.email,
-                            type: user.type || 'C',
-                            roles: user.roles || [],
+                            username: username || user.username,
+                            email: userEmail || user.email,
+                            type: userType || user.type || 'C',
+                            companyId: companyId || user.companyId || null,
+                            roles: userRoles ? JSON.parse(userRoles) : (user.roles || []),
                         }
 
                         logger.info('从user-center服务补充用户信息', {
                             userId,
-                            username: user.username,
-                            userType: user.type,
+                            username: userInfo.username,
+                            userType: userInfo.type,
                             traceId: ctx.state.traceId,
                         })
                     } else {
@@ -179,11 +182,10 @@ export const gatewayAuth = async (ctx, next) => {
 // 内部服务认证中间件 - 用于k8s内网服务间调用
 export const internalAuth = async (ctx, next) => {
     try {
-        const userId = ctx.headers['x-user-id']
+        let userId = ctx.headers['x-user-id']
 
         if (!userId && config.debug.enabled && config.debug.userId) {
             userId = config.debug.userId
-
         }
 
         if (!userId) {

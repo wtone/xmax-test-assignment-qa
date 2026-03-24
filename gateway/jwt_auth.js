@@ -134,7 +134,7 @@ export default async (ctx, next) => {
                     method,
                     traceId: ctx.state.traceId
                 })
-                const error = new CustomError(errorCodes.TOKEN_EXPIRED.message, errorCodes.TOKEN_EXPIRED.code)
+                const error = new CustomError('B-end user requires company association', errorCodes.PERMISSION_DENIED.code)
                 throw error
             }
 
