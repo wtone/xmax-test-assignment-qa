@@ -7,10 +7,10 @@
     "scripts": {
         "start": "node app.js",
         "dev": "node app.js",
-        "test": "NODE_OPTIONS='--experimental-vm-modules' jest --verbose",
-        "test:a": "NODE_OPTIONS='--experimental-vm-modules' jest --testPathPattern=module-a --verbose",
-        "test:b": "NODE_OPTIONS='--experimental-vm-modules' jest --testPathPattern=module-b --verbose",
-        "test:example": "NODE_OPTIONS='--experimental-vm-modules' jest --testPathPattern=example --verbose"
+        "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --verbose",
+        "test:a": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern=module-a --verbose",
+        "test:b": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern=module-b --verbose",
+        "test:example": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern=example --verbose"
     },
     "keywords": [
         "xmax",
